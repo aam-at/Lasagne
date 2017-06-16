@@ -299,6 +299,52 @@ def binary_hinge_loss(predictions, targets, delta=1, log_odds=None,
     return theano.tensor.nnet.relu(delta - predictions * targets)
 
 
+def weston_multiclass_loss(predictions, targets, delta=1):
+    """Computes the multi-class hinge loss between predictions and targets.
+
+    .. math:: L_i = \\sum_{j \\not = p_i} (0, t_j - t_{p_i} + \\delta) [1]_
+
+    Parameters
+    ----------
+    predictions : Theano 2D tensor
+        Predictions in (0, 1), such as softmax output of a neural network,
+        with data points in rows and class probabilities in columns.
+    targets : Theano 2D tensor or 1D tensor
+        Either a vector of int giving the correct class index per data point
+        or a 2D tensor of one-hot encoding of the correct class in the same
+        layout as predictions (non-binary targets in [0, 1] do not work!)
+    delta : scalar, default 1
+        The hinge loss margin
+
+    Returns
+    -------
+    Theano 1D tensor
+        An expression for the item-wise multi-class hinge loss
+
+    Notes
+    -----
+    This is an alternative to the categorical cross-entropy loss for
+    multi-class classification problems
+
+    References
+    ----------
+    .. [1] Jason Weston and Chris Watkins (1998):
+           Multi-class support vector machines. Technical Report CSDTR-98-04,
+           Department of Computer Science, Royal Holloway College, University
+           of London
+
+    """
+    num_cls = predictions.shape[1]
+    if targets.ndim == predictions.ndim - 1:
+        targets = theano.tensor.extra_ops.to_one_hot(targets, num_cls)
+    elif targets.ndim != predictions.ndim:
+        raise TypeError('rank mismatch between targets and predictions')
+    corrects = predictions[targets.nonzero()].dimshuffle(0, 'x')
+    rest = theano.tensor.reshape(predictions[(1-targets).nonzero()],
+                                 (-1, num_cls-1))
+    return theano.tensor.nnet.relu(rest - corrects + delta).sum(axis=1)
+
+
 def multiclass_hinge_loss(predictions, targets, delta=1):
     """Computes the multi-class hinge loss between predictions and targets.
 
@@ -330,7 +376,7 @@ def multiclass_hinge_loss(predictions, targets, delta=1):
     ----------
     .. [1] Koby Crammer and Yoram Singer (2001):
            On the algorithmic implementation of kernel-based vector machines.
-           Journal of Machine Learning Research, 2:265–292.
+           Journal of Machine Learning Research.
     """
     num_cls = predictions.shape[1]
     if targets.ndim == predictions.ndim - 1:
