@@ -302,7 +302,7 @@ def binary_hinge_loss(predictions, targets, delta=1, log_odds=None,
 def multiclass_hinge_loss(predictions, targets, delta=1):
     """Computes the multi-class hinge loss between predictions and targets.
 
-    .. math:: L_i = \\max_{j \\not = p_i} (0, t_j - t_{p_i} + \\delta)
+    .. math:: L_i = \\max_{j \\not = p_i} (0, t_j - t_{p_i} + \\delta) [1]_
 
     Parameters
     ----------
@@ -325,6 +325,12 @@ def multiclass_hinge_loss(predictions, targets, delta=1):
     -----
     This is an alternative to the categorical cross-entropy loss for
     multi-class classification problems
+
+    References
+    ----------
+    .. [1] Koby Crammer and Yoram Singer (2001):
+           On the algorithmic implementation of kernel-based vector machines.
+           Journal of Machine Learning Research, 2:265–292.
     """
     num_cls = predictions.shape[1]
     if targets.ndim == predictions.ndim - 1:
